@@ -8,37 +8,47 @@ def team_info():
     """
         Returns a list of team information dictionaries
     """
+    data = nhl_api.data.get_franchise()
+    parsed = data.json()
+    franchises = parsed["data"]
+    teams = []
     data = nhl_api.data.get_teams()
     parsed = data.json()
-    teams_data = parsed["teams"]
-    teams = []
-
+    teams_data = parsed["data"]
     for team in teams_data:
         try:
-            team_id = team['id']
-            name = team['name']
-            abbreviation = team['abbreviation']
-            team_name = team['teamName']
-            location_name = team['locationName']
-            short_name = team['shortName']
-            division_id = team['division']['id']
-            division_name = team['division']['name']
-            division_abbrev = team['division']['abbreviation']
-            conference_id = team['conference']['id']
-            conference_name = team['conference']['name']
-            official_site_url = team['officialSiteUrl']
+            if team['fullName'] == "NHL":
+                continue
             franchise_id = team['franchiseId']
+            team_id = team['id']
+            fullName = team['fullName']
+            abbreviation = team['triCode']
+            franchise_data = None
+            for franchise in franchises:
+                if franchise['id'] == franchise_id:
+                    franchise_data = franchise
+                    break
+            team_name = franchise_data['teamCommonName']
+            location_name = franchise_data['teamPlaceName']
+            #short_name = team_name
+            #division_id = team['division']['id']
+            #division_name = team['division']['name']
+            #division_abbrev = team['division']['abbreviation']
+            #conference_id = team['conference']['id']
+            #conference_name = team['conference']['name']
+            #official_site_url = team['officialSiteUrl']
             
-
+            schedule = nhl_api.data.get_team_schedule(abbreviation)
+            schedule = schedule.json()
             try:
-                previous_game = team['previousGameSchedule']
+                previous_game = schedule['previousStartDate']
                 # previous_game = False
             except:
                 debug.log("No next game detected for {}".format(team_name))
                 previous_game = False
 
             try:
-                next_game = team['nextGameSchedule']
+                next_game = schedule['nextStartDate']
             except:
                 debug.log("No next game detected for {}".format(team_name))
                 next_game = False
@@ -50,56 +60,63 @@ def team_info():
                 stats = False
 
             roster = {}
-            for p in team['roster']['roster']:
-                person = p['person']
-                person_id = person['id']
-                name = HumanName(person['fullName'])
-                first_name = name.first
-                last_name = name.last
+            '''
+                FAILS IN THIS LOOP
+            '''
 
-                position_name = p['position']['name']
-                position_type = p['position']['abbreviation']
-                position_abbrev = p['position']['abbreviation']
+            
+            player_ids = nhl_api.data.get_team_roster(abbreviation).json()
+            for pos in player_ids:
+                for person in player_ids[pos]:
+                    person_id = str(person['id'])
+                    first_name = person['firstName']["default"]
+                    last_name = person['lastName']['default']
+                    position_name = pos[:-1]
+                    position_type = person['positionCode']
+                    position_abbrev = person['positionCode']
+                    
+                    try:
+                        jerseyNumber = person['sweaterNumber']
+                    except KeyError:
+                        jerseyNumber = ""
+                    
 
-                try:
-                    jerseyNumber = p['jerseyNumber']
-                except KeyError:
-                    jerseyNumber = ""
-                
-                roster[person_id]= {
-                    'firstName': first_name,
-                    'lastName': last_name,
-                    'jerseyNumber': jerseyNumber,
-                    'positionName': position_name,
-                    'positionType': position_type,
-                    'positionAbbrev': position_abbrev
-                    }
+                    roster[person_id]= {
+                        'firstName': first_name,
+                        'lastName': last_name,
+                        'jerseyNumber': jerseyNumber,
+                        'positionName': position_name,
+                        'positionType': position_type,
+                        'positionAbbrev': position_abbrev
+                        }
+
                 
             
-            output = {
-                'team_id': team_id,
-                'name': name,
-                'abbreviation': abbreviation,
-                'team_name': team_name,
-                'location_name': location_name,
-                'short_name': short_name,
-                'division_id': division_id,
-                'division_name': division_name,
-                'division_abbrev': division_abbrev,
-                'conference_id': conference_id,
-                'conference_name': conference_name,
-                'official_site_url': official_site_url,
-                'franchise_id': franchise_id,
-                'roster': roster,
-                'previous_game': previous_game,
-                'next_game': next_game,
-                'stats': stats
-            }
+                output = {
+                    'team_id': team_id,
+                    'name': fullName,
+                    'abbreviation': abbreviation,
+                    'team_name': team_name,
+                    'location_name': location_name,
+                    #'short_name': short_name,
+                    #'division_id': division_id,
+                    #'division_name': division_name,
+                    #'division_abbrev': division_abbrev,
+                    #'conference_id': conference_id,
+                    #'conference_name': conference_name,
+                    #'official_site_url': official_site_url,
+                    'franchise_id': franchise_id,
+                    'roster': roster,
+                    'previous_game': previous_game,
+                    'next_game': next_game,
+                    'stats': stats
+                }
 
-            # put this dictionary into the larger dictionary
-            teams.append(output)
-        except:
-            debug.error("Missing data in current team info")
+                # put this dictionary into the larger dictionary
+                teams.append(output)
+        except Exception as e:
+            debug.error("Missing data in current team: " + fullName)
+            print(e)
 
     return teams
 
@@ -116,7 +133,7 @@ def status():
 
 
 def current_season():
-    data = nhl_api.data.get_current_season().json()
+    data = nhl_api.data.get_current_season()
     return data
 
 def next_season():

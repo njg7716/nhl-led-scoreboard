@@ -132,7 +132,6 @@ class Data:
 
         # Get the teams info
         self.teams = self.get_teams()
-
         # Save the parsed config
         self.config = config
 
@@ -177,10 +176,10 @@ class Data:
         self.stanleycup_round = False
 
         # Fetch the playoff data
-        self.refresh_playoff()
+        #self.refresh_playoff()
 
         # Stanley cup champions
-        self.cup_winner_id = self.check_stanley_cup_champion()
+        #self.cup_winner_id = self.check_stanley_cup_champion()
 
 
     #
@@ -581,7 +580,7 @@ class Data:
         self.refresh_standings()
 
         # Fetch the playoff data
-        self.refresh_playoff()
+        #self.refresh_playoff()
         
  
         

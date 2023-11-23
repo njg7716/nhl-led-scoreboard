@@ -86,24 +86,25 @@ class Scoreboard:
     def __init__(self, overview, data):
         time_format = data.config.time_format
         linescore = overview.linescore
+        print(linescore)
 
-        away = linescore.teams.away
-        away_abbrev = data.teams_info[away.team.id].abbreviation
-        self.away_roster = data.teams_info[away.team.id].roster
+        away = overview.away_score
+        away_abbrev = overview.away_team_abrev
+        self.away_roster = data.teams_info[overview.away_team_id].roster
 
-        home = linescore.teams.home
-        home_abbrev = data.teams_info[home.team.id].abbreviation
-        self.home_roster = data.teams_info[home.team.id].roster
+        home = overview.home_score
+        home_abbrev = overview.home_team_abrev
+        self.home_roster = data.teams_info[overview.home_team_id].roster
 
         away_goal_plays = []
         home_goal_plays = []
 
         away_penalties = []
         home_penalties = []
-
-        if hasattr(overview,"plays"):
+        
+        if hasattr(overview,"plays") and False:
             plays = overview.plays
-            away_scoring_plays, away_penalty_play, home_scoring_plays, home_penalty_play = filter_plays(plays,away.team.id,home.team.id)
+            away_scoring_plays, away_penalty_play, home_scoring_plays, home_penalty_play = filter_plays(plays,overview.away_team_id,overview.home_team_id)
             
             # Get the Away Goal details
             # If the request to the API fails or is missing who scorer and the assists are, return an empty list of goal plays
@@ -146,10 +147,8 @@ class Scoreboard:
                     home_penalties = []
                     break
 
-        self.away_team = TeamScore(away.team.id, away_abbrev, away.team.name, away.goals, away.shotsOnGoal, away_penalties, away.powerPlay,
-                            away.numSkaters, away.goaliePulled, away_goal_plays)
-        self.home_team = TeamScore(home.team.id, home_abbrev, home.team.name, home.goals, home.shotsOnGoal, home_penalties, home.powerPlay,
-                            home.numSkaters, home.goaliePulled, home_goal_plays)
+        self.away_team = TeamScore(overview.away_team_id, overview.away_team_abrev, overview.away_team_name, overview.away_score, overview.away_sog)
+        self.home_team = TeamScore(overview.home_team_id, overview.home_team_abrev, overview.home_team_name, overview.home_score, overview.home_sog)
 
         self.date = convert_time(overview.game_date).strftime("%Y-%m-%d")
         self.start_time = convert_time(overview.game_date).strftime(time_format)
@@ -157,7 +156,7 @@ class Scoreboard:
         self.periods = Periods(overview)
         
         try:
-            self.intermission = linescore.intermissionInfo.inIntermission
+            self.intermission = overview.inIntermission
         except:
             debug.error("Intermission data unavailable")
             self.intermission = False

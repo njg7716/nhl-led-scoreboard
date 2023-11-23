@@ -109,7 +109,6 @@ class MainRenderer:
         self.sleepEvent.clear()
 
         while not self.sleepEvent.is_set():
-
             if self.data._is_new_day():
                 debug.log('This is a new day')
                 return
@@ -121,6 +120,7 @@ class MainRenderer:
                     self.data.pb_trigger = False
                 #Display the board from the config
                 self.boards._pb_board(self.data, self.matrix, self.sleepEvent)
+                continue
 
             # Display the Weather Alert board
             if self.data.wx_alert_interrupt:
@@ -128,6 +128,7 @@ class MainRenderer:
                 self.data.wx_alert_interrupt = False
                 #Display the board from the config
                 self.boards._wx_alert(self.data, self.matrix, self.sleepEvent)
+                continue
 
             # Display the screensaver board
             if self.data.screensaver:
@@ -138,6 +139,7 @@ class MainRenderer:
                     self.boards._screensaver(self.data, self.matrix, self.sleepEvent)
                 else:
                     self.data.pb_trigger = False
+                continue
 
             if self.status.is_live(self.data.overview.status):
                 """ Live Game state """
@@ -160,6 +162,7 @@ class MainRenderer:
                     self.boards._intermission(self.data, self.matrix,self.sleepEvent)
                 else:
                     self.sleepEvent.wait(self.refresh_rate)
+                continue
 
             elif self.status.is_game_over(self.data.overview.status):
                 debug.info("Game Over")
@@ -173,6 +176,7 @@ class MainRenderer:
                 self.__render_postgame(sbrenderer)
 
                 self.sleepEvent.wait(self.refresh_rate)
+                continue
 
             elif self.status.is_final(self.data.overview.status):
                 """ Post Game state """
@@ -188,6 +192,7 @@ class MainRenderer:
                 self.sleepEvent.wait(self.refresh_rate)
                 if not self.goal_team_cache:
                     self.boards._post_game(self.data, self.matrix,self.sleepEvent)
+                continue
 
             elif self.status.is_scheduled(self.data.overview.status):
                 """ Pre-game state """
@@ -197,6 +202,7 @@ class MainRenderer:
                 #sleep(self.refresh_rate)
                 self.sleepEvent.wait(self.refresh_rate)
                 self.boards._scheduled(self.data, self.matrix,self.sleepEvent)
+                continue
 
             elif self.status.is_irregular(self.data.overview.status):
                 """ Pre-game state """
@@ -206,6 +212,7 @@ class MainRenderer:
                 #sleep(self.refresh_rate)
                 self.sleepEvent.wait(self.refresh_rate)
                 self.boards._scheduled(self.data, self.matrix,self.sleepEvent)
+                continue
 
             self.data.refresh_data()
             self.data.refresh_overview()
@@ -215,7 +222,9 @@ class MainRenderer:
 
             if self.data.newUpdate and not self.data.config.clock_hide_indicators:
                 self.matrix.update_indicator()
-
+            self.sleepEvent.wait(self.refresh_rate)
+            return
+        return
 
     def __render_pregame(self, sbrenderer):
         debug.info("Showing Pre-Game")

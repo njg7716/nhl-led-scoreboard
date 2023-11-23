@@ -5,29 +5,33 @@ import debug
 class Status:
     def __init__(self):
         game_status = game_status_info()
-        self.season_info = current_season_info()['seasons'][0]
+        season_info = current_season_info()
+        #self.season_info = current_season_info()['seasons'][0]
+        self.season_info = current_season_info()
         #self.next_season_info = next_season_info()['seasons'][0]
-        self.season_id = self.season_info["seasonId"]
+        self.season_id = self.season_info["id"]
         self.Preview = []
         self.Live = []
         self.GameOver = []
         self.Final = []
         self.Irregular = []
-
-        for status in game_status:
-            if status['code'] == '8' or status['code'] == '9':
-                self.Irregular.append(status['detailedState'])
-            elif status['abstractGameState'] == "Preview":
-                self.Preview.append(status['detailedState'])
-            elif status['abstractGameState'] == 'Live':
-                self.Live.append(status['detailedState'])
-            elif status['abstractGameState'] == 'Final':
-                # since July 2020, status code 6 is no longer part of Game over but Final
-                if status['code'] == '5':
-                    self.GameOver.append(status['detailedState'])
+        for day in game_status["gameWeek"]:
+            for status in day["games"]:
+                if status['gameType'] == '8' or status['gameType'] == '9':
+                    self.Irregular.append(status)
+                elif status['gameState'] == "FUT":
+                    self.Preview.append(status)
+                elif status['gameState'] == 'ON':
+                    self.Live.append(status)
+                elif status['gameState'] == 'OFF':
+                    # since July 2020, status code 6 is no longer part of Game over but Final
+                    if status['gameType'] == '5':
+                        self.GameOver.append(status)
+                    else:
+                        self.Final.append(status)
                 else:
-                    self.Final.append(status['detailedState'])
-        
+                    print("GameState == " + status['gameState'])
+                    self.Live.append(status)
         # # Make sure that the next_season_info is not an empty list, if it is, make next_season = to current season
         
         # if not self.next_season_info:
@@ -40,8 +44,10 @@ class Status:
         
 
     def is_scheduled(self, status):
-        return status in self.Preview
+        print("check if status in self.Preview")
+        print(str(status))
 
+        return status in self.Preview
     def is_live(self, status):
         return status in self.Live
 
@@ -76,8 +82,9 @@ class Status:
      
     def refresh_next_season(self):
         debug.info("Updating next season info")
-        self.season_info = current_season_info()['seasons'][0]
-        self.next_season_info = next_season_info()['seasons'][0]
+        #self.season_info = current_season_info()['seasons'][0]
+        #self.next_season_info = next_season_info()['seasons'][0]
+        self.next_season_info = None
         # Make sure that the next_season_info is not an empty list, if it is, make next_season = to current season
         
         if not self.next_season_info:

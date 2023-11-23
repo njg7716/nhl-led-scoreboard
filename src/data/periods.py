@@ -13,11 +13,13 @@ class Periods:
             self.intermission_time_remaining = intermission_info.intermissionTimeRemaining
         except AttributeError:
             self.is_intermission = False
-
-        self.gameType = overview.game_type
-        self.number = period_info.currentPeriod
         try:
-            self.clock = period_info.currentPeriodTimeRemaining
+            self.gameType = overview.game_type
+            self.number = overview.period
+        except:
+            self.number = 0
+        try:
+            self.clock = overview.clock.timeRemaining
         except AttributeError:
             self.clock = '00:00'
         self.get_ordinal()

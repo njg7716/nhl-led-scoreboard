@@ -18,26 +18,37 @@ def scoreboard(year, month, day):
         return data
     parsed = data.json()
 
-    if parsed["dates"]:
-        games_data = parsed["dates"][0]["games"]
+    if parsed["games"]:
+        games_data = parsed["games"]
         games = {}
         for game in games_data:
-            game_id = game['gamePk']
+            game_id = game['id']
             season = game['season']
             game_type = game['gameType']
-            game_date = game['gameDate']
+            game_date = game['startTimeUTC']
 
-            home_team_id = int(game['teams']['home']['team']['id'])
-            home_team_name = game['teams']['home']['team']['name']
-            away_team_id = int(game['teams']['away']['team']['id'])
-            away_team_name = game['teams']['away']['team']['name']
-            home_score = game['teams']['home']['score']
-            away_score = game['teams']['away']['score']
+            home_team_id = int(game['homeTeam']['id'])
+            home_team_name = game['homeTeam']['name']['default']
+            away_team_id = int(game['awayTeam']['id'])
+            away_team_name = game['awayTeam']['name']['default']
+            try:
+                home_score = game['homeTeam']['score']
+            except:
+                home_score = "0"
+            try:
+                away_score = game['awayTeam']['score']
+            except:
+                away_score = "0"
 
-            status = game['status']['detailedState']
-            status_code = game['status']['statusCode']
-            status_abstract_state = game['status']['abstractGameState']
-            linescore = game['linescore']
+            status = game['gameState']
+            status_code = game['gameScheduleState']
+            status_abstract_state = game['gameState']
+            if (home_score == None) or (away_score == None):
+                linescore = "0-0"
+            elif int(home_score) > int(away_score):
+                linescore = f"{home_score}-{away_score}"
+            else:
+                linescore = f"{away_score}-{home_score}"
 
             output = {
                 'game_id': game_id,
@@ -103,30 +114,46 @@ class GameScoreboard(object):
 
 def overview(game_id):
     data = nhl_api.data.get_overview(game_id)
-    parsed = data.json()
+    parsed = data
     # Top level information (General)
-    id = parsed['gamePk']
-    time_stamp = parsed['gameData']['game']
-    game_type = parsed['gameData']['game']['type']
-    status = parsed['gameData']['status']['detailedState']
-    status_code = parsed['gameData']['status']['statusCode']
-    status_abstract_state = parsed['gameData']['status']['abstractGameState']
-    game_date = parsed['gameData']['datetime']['dateTime']
+    id = parsed['id']
+    time_stamp = 0 #parsed['gameData']['game']
+    if parsed['gameType'] == 2:
+        game_type = "R"
+    else:
+        debug.log("game type is " + str(parsed['gameType']))
+        game_type = "P"
+
+    status = data
+    status_code = parsed["gameState"]
+    status_abstract_state = parsed["gameState"]
+    game_date = parsed['startTimeUTC']
 
     # Sub level information (Details)
-    plays = parsed['liveData']['plays']
-    linescore = parsed['liveData']['linescore']
-    boxscore = parsed['liveData']['boxscore']
-    away_score = linescore['teams']['away']['goals']
-    home_score = linescore['teams']['home']['goals']
+    if parsed["gameState"] == "FUT":
+        plays = ""
+        linescore = ""
+        boxscore = ""
+        away_score = "0"
+        home_score = "0"
+        home_sog = "0"
+        away_sog = "0"
+    else:
+        plays = ""
+        linescore = parsed['boxscore']['linescore']
+        boxscore = parsed['boxscore']
+        away_score = linescore['awayTeam']['score']
+        home_score = linescore['homeTeam']['score']
+        home_sog = parsed['homeTeam']['sog']
+        away_sog = parsed['awayTeam']['sog']
 
     # Team details
-    away_team_id = parsed['gameData']['teams']['away']['id']
-    away_team_name = parsed['gameData']['teams']['away']['name']
-    away_team_abrev = parsed['gameData']['teams']['away']['abbreviation']
-    home_team_id = parsed['gameData']['teams']['home']['id']
-    home_team_name = parsed['gameData']['teams']['home']['name']
-    home_team_abrev = parsed['gameData']['teams']['home']['abbreviation']
+    away_team_id = parsed['awayTeam']['id']
+    away_team_name = parsed['awayTeam']['name']['default']
+    away_team_abrev = parsed['awayTeam']['abbrev']
+    home_team_id = parsed['homeTeam']['id']
+    home_team_name = parsed['homeTeam']['name']['default']
+    home_team_abrev = parsed['homeTeam']['abbrev']
 
     # 3 stars (if any available)
     try:
@@ -163,7 +190,10 @@ def overview(game_id):
         'plays': plays,  # Dictionary of all the plays of the game.
         'first_star': first_star,
         'second_star': second_star,
-        'third_star': third_star
+        'third_star': third_star,
+        'inIntermission' : parsed['clock']['inIntermission'],
+        'home_sog' : home_sog,
+        'away_sog' : away_sog,
     }
     return output
 
